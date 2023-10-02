@@ -1,4 +1,3 @@
-%sql
 SELECT
     joined_data.cmhc_programidname,
     COUNT(DISTINCT joined_data.createdon) AS PO_num,
