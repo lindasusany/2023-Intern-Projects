@@ -1,0 +1,55 @@
+%sql
+SELECT
+    joined_data.cmhc_programidname,
+    COUNT(DISTINCT joined_data.createdon) AS PO_num,
+    (SUM(
+         CASE
+                WHEN joined_data.cmhc_constructionperiodduration IS NOT NULL THEN joined_data.cmhc_constructionperiodduration/30
+                WHEN joined_data.cmhc_constructionperiodduration IS NULL AND joined_data.cmhc_actualprojectstartdate IS NOT NULL AND joined_data.cmhc_actualprojectcompletiondate IS NOT NULL THEN
+                    DATEDIFF(DAY, joined_data.cmhc_actualprojectstartdate, joined_data.cmhc_actualprojectcompletiondate)
+                WHEN joined_data.cmhc_constructionperiodduration IS NULL AND joined_data.cmhc_fundingperiodstartdate IS NOT NULL AND joined_data.cmhc_fundingperiodenddate IS NOT NULL THEN
+                    DATEDIFF(DAY, joined_data.cmhc_fundingperiodstartdate, joined_data.cmhc_fundingperiodenddate)
+                WHEN joined_data.cmhc_constructionperiodduration IS NULL AND joined_data.cmhc_expectedprojectstartdate IS NOT NULL AND joined_data.cmhc_expectedprojectcompletiondate IS NOT NULL THEN
+                    DATEDIFF(DAY, joined_data.cmhc_expectedprojectstartdate, joined_data.cmhc_expectedprojectcompletiondate)
+                ELSE NULL
+        END
+    ) ) AS Construction_Period_Duration_D,
+    (
+        (SUM(
+            CASE
+                WHEN joined_data.cmhc_constructionperiodduration IS NOT NULL THEN joined_data.cmhc_constructionperiodduration/30
+                WHEN joined_data.cmhc_constructionperiodduration IS NULL AND joined_data.cmhc_actualprojectstartdate IS NOT NULL AND joined_data.cmhc_actualprojectcompletiondate IS NOT NULL THEN
+                    DATEDIFF(DAY, joined_data.cmhc_actualprojectstartdate, joined_data.cmhc_actualprojectcompletiondate)
+                WHEN joined_data.cmhc_constructionperiodduration IS NULL AND joined_data.cmhc_fundingperiodstartdate IS NOT NULL AND joined_data.cmhc_fundingperiodenddate IS NOT NULL THEN
+                    DATEDIFF(DAY, joined_data.cmhc_fundingperiodstartdate, joined_data.cmhc_fundingperiodenddate)
+                WHEN joined_data.cmhc_constructionperiodduration IS NULL AND joined_data.cmhc_expectedprojectstartdate IS NOT NULL AND joined_data.cmhc_expectedprojectcompletiondate IS NOT NULL THEN
+                    DATEDIFF(DAY, joined_data.cmhc_expectedprojectstartdate, joined_data.cmhc_expectedprojectcompletiondate)
+                ELSE NULL
+            END
+        ) ) / COUNT(DISTINCT joined_data.createdon)
+    ) AS avg_Processing_Time_D
+FROM (
+    SELECT
+        PO.cmhc_internalponumber,
+        PO.createdon,
+        CP.cmhc_programidname,
+        CP.cmhc_constructionperiodduration,
+        CP.cmhc_actualprojectstartdate,
+        CP.cmhc_actualprojectcompletiondate,
+        CP.cmhc_expectedprojectstartdate,
+        CP.cmhc_expectedprojectcompletiondate,
+        CP.cmhc_fundingperiodstartdate,
+        CP.cmhc_fundingperiodenddate
+    FROM
+        crm_ah.msdyn_purchaseorderproduct AS POP
+    LEFT JOIN
+        crm_ah.msdyn_purchaseorder AS PO
+    ON
+        PO.id = POP.msdyn_purchaseorder
+    LEFT JOIN
+        crm_crosslob.cmhc_application_ifarh AS CP
+    ON
+        CP.id = POP.cmhc_application_ifarhid
+) AS joined_data
+GROUP BY
+    joined_data.cmhc_programidname;
